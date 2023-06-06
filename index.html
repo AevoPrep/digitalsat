@@ -889,9 +889,14 @@
             div4.style.width = "100%";
             div4.style.paddingLeft = "10px";
             div4.style.paddingRight = "10px";
-            if(/~/.test(paragraph))div4.style.fontStyle = "italic";
-            div4.style.color = "rgba(16, 16, 16, .7)";
-            div4.textContent = paragraph.split('~')[1];
+            if(/~/.test(paragraph)){
+              div4.style.fontStyle = "italic";
+              div4.style.color = "rgba(16, 16, 16, .7)";
+              div4.textContent = paragraph.split('~')[1];
+            }
+            else{
+              div4.textContent = paragraph;
+            }
           }
           div.style.width = "100%";
           div.classList.add("sourceMaterialParagraphs");
