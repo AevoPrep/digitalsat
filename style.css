@@ -104,6 +104,8 @@ html, body {
   align-items: center;
   border: 1px solid #767676;
   box-shadow: 1px 1px 5px #b7b7b7, -1px -1px 5px #b7b7b7;
+  margin-left: 5px;
+  margin-right: 5px;
 }
 .sectionBlock:hover{
   border: 1px solid #ffffff;
@@ -237,6 +239,7 @@ button {
   margin-right: 6px;
   background-color: #f0f0f0;
   cursor: pointer;
+  white-space: nowrap;
 }
 button:hover {
   background-color: #ddd;
@@ -340,11 +343,11 @@ button:hover {
   padding: 20px;
   border-radius: 5px;
   box-shadow: 4px 4px 6px rgba(0, 0, 0, 0.2);
-  opacity: 0;
-  transition: opacity 1.5s ease;
+  visibility: hidden;
+  transition: visibility 1.5s ease;
 }
 #loginForm.visible {
-  opacity: 1;
+  visibility: visible;
 }
 input[type="text"] {
   display: block;
@@ -570,4 +573,9 @@ button.question-active {
 }
 .close-button:hover {
   box-shadow: 2px 2px 2px #ffffff7c, -2px -2px 2px #ffffff7c;
+}
+#AnswersOuterContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }

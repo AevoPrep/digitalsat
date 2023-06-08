@@ -45,7 +45,9 @@
         <div class="thisDiv" id="QuestionPane">
           <div id="QuestionPaneHead"></div>
           <div id="QuestionPanePrompt"></div>
-          <div id="QuestionPaneAnswers"></div>
+          <div id="AnswersOuterContainer">
+            <div id="QuestionPaneAnswers"></div>
+          </div>
         </div>
       </div>
       <div id="bottomTab" class="thisDiv bottom-info-section info-section">
@@ -505,7 +507,7 @@
         }
         for (let i = QuestionPane.children.length - 1; i >= 0; i--) {
           const child = QuestionPane.children[i];
-          if (child.id !== "QuestionPaneHead" && child.id !== "QuestionPanePrompt" && child.id !== "QuestionPaneAnswers") {
+          if (child.id !== "QuestionPaneHead" && child.id !== "QuestionPanePrompt" && child.id !== "AnswersOuterContainer") {
             QuestionPane.removeChild(child);
           }
         }
@@ -544,6 +546,19 @@
           }
         }
         return (answeredQuestions / questions.length) * 100;
+      }
+      function getTotalWidth(elementId) {
+        var element = document.getElementById(elementId);
+        var styles = window.getComputedStyle(element);
+        var width = element.offsetWidth;
+        var marginLeft = parseFloat(styles.marginLeft);
+        var marginRight = parseFloat(styles.marginRight);
+        var totalWidth = width + marginLeft + marginRight;
+        console.log('getting width of '+elementId)
+        console.log('width:'+width)
+        console.log('marginLeft:'+marginLeft)
+        console.log('marginRight:'+marginRight)
+        return totalWidth;
       }
       function buildBottomSection(data){
         const questionLinksContainer = document.getElementById('questionLinksContainer');
@@ -622,6 +637,7 @@
             });
           }
         }
+        resizeButtons();
         setTimeout(() => {
           let firstBottomButton = document.getElementById('bottomButton0')
           firstBottomButton.classList.add('question-active');
@@ -637,6 +653,51 @@
           outline.style.top = `${relativeTop-4}px`;
         }, 100)
       }
+      function resizeButtons(){
+        const bottomTabWidth = document.getElementById('bottomTab').offsetWidth;
+        const backButtonWidth = getTotalWidth('backButton');
+        const nextButtonWidth = getTotalWidth('nextButton');
+        const maxButtonsWidth = bottomTabWidth - backButtonWidth - nextButtonWidth - 40;
+        const buttons = document.getElementById('questionLinksContainer').getElementsByTagName('button');
+        const totalButtons = buttons.length;
+        let fullButtonWidth = 9999;
+        const minPaddingHorizontal = 3;
+        const minMarginHorizontal = 2;
+        const maxPaddingHorizontal = 20;
+        const maxMarginHorizontal = 12;
+
+        const paddingDecreaseRatio = (maxPaddingHorizontal - minPaddingHorizontal) / 
+                                    (maxPaddingHorizontal - minPaddingHorizontal + maxMarginHorizontal - minMarginHorizontal);
+        const marginDecreaseRatio = (maxMarginHorizontal - minMarginHorizontal) / 
+                                    (maxPaddingHorizontal - minPaddingHorizontal + maxMarginHorizontal - minMarginHorizontal);
+
+        let paddingHorizontal = maxPaddingHorizontal;
+        let marginHorizontal = maxMarginHorizontal;
+
+        while (fullButtonWidth > maxButtonsWidth && 
+              (paddingHorizontal > minPaddingHorizontal || marginHorizontal > minMarginHorizontal)) {
+          fullButtonWidth = 0;
+          if (paddingHorizontal - paddingDecreaseRatio > minPaddingHorizontal) {
+            paddingHorizontal -= paddingDecreaseRatio;
+          } else {
+            paddingHorizontal = minPaddingHorizontal;
+          }
+          if (marginHorizontal - marginDecreaseRatio > minMarginHorizontal) {
+            marginHorizontal -= marginDecreaseRatio;
+          } else {
+            marginHorizontal = minMarginHorizontal;
+          }
+          for (let i = 0; i < totalButtons; i++) {
+            buttons[i].style.paddingLeft = `${paddingHorizontal/2}px`;
+            buttons[i].style.paddingRight = `${paddingHorizontal/2}px`;
+            buttons[i].style.marginLeft = `${marginHorizontal/2}px`;
+            buttons[i].style.marginRight = `${marginHorizontal/2}px`;
+          }
+          for (let i = 0; i < totalButtons; i++) {
+            fullButtonWidth+=getTotalWidth(buttons[i].id);
+          }
+        }
+      }
       function loadQuestion(questionCard,questionIndex){
         updateOutline(document.getElementById(`qh${questionCard}-${lastQuestionViewedPerIndex[questionCard]}`));
         lastQuestionViewedPerIndex[questionCard]=questionIndex;
@@ -646,11 +707,16 @@
         let question = questions[questionIndex];
         let prompt = question[0];
         let answers = question.slice(1, -1);
-        document.getElementById("QuestionPanePrompt").innerText = prompt;
+        const promptDiv = document.getElementById("QuestionPanePrompt")
+        if(!prompt)promptDiv.style.display = 'none';
+        else {
+          promptDiv.style.display = 'flex';
+          promptDiv.innerText = prompt;
+        }
         const QuestionPaneAnswers = document.getElementById("QuestionPaneAnswers");
         QuestionPaneAnswers.innerHTML = '';
 
-        const isImageAnswer = answers.some(answer => answer.includes('=IMAGE'));
+        const isImageAnswer = answers.some(answer => typeof answer === 'string' && answer.includes('=IMAGE'));
         if(isImageAnswer){
           const gridContainer = document.createElement("div");
           gridContainer.id = 'gridContainer';
@@ -700,7 +766,7 @@
             answerContainer.classList.add("answer-selected");
           }
 
-          if(answer.startsWith("=IMAGE")){
+          if(typeof answer === 'string' && answer.startsWith("=IMAGE")){
             const answerImage = document.createElement("img");
             answerImage.src = answer.split('IMAGE(')[1].split('"')[1];
             answerImage.classList.add("answerImage");
@@ -719,6 +785,7 @@
             QuestionPaneAnswers.appendChild(answerContainer);
           }
         });
+        document.getElementById("AnswersOuterContainer").style.height = `${window.innerHeight * 0.8 - document.getElementById("QuestionPaneHead").offsetHeight - document.getElementById("QuestionPanePrompt").offsetHeight - 50}px`;
         updateGridContainerMaxHeight();
       }
       function insertQuestions(index,thisButtonRange) {
@@ -953,18 +1020,23 @@
       }
       function updateGridContainerMaxHeight() {
         const gridContainer = document.getElementById("gridContainer");
-        const QuestionPaneAnswers = document.getElementById("QuestionPaneAnswers");
-        if(gridContainer){
-          const QuestionPaneHead = document.getElementById("QuestionPaneHead");
-          const QuestionPanePrompt = document.getElementById("QuestionPanePrompt");
-          const headHeight = QuestionPaneHead.offsetHeight;
-          const promptHeight = QuestionPanePrompt.offsetHeight;
-
-          const maxHeight = window.innerHeight * 0.8 - headHeight - promptHeight - 50;
-          gridContainer.style.maxHeight = `${maxHeight}px`;
-          QuestionPaneAnswers.style.maxHeight = `${maxHeight}px`;
-        }
+        const QuestionPaneHead = document.getElementById("QuestionPaneHead");
+        const QuestionPanePrompt = document.getElementById("QuestionPanePrompt");
+        const headHeight = QuestionPaneHead.offsetHeight;
+        const promptHeight = QuestionPanePrompt.offsetHeight;
+        const maxHeight = window.innerHeight * 0.8 - headHeight - promptHeight - 50;
+        document.getElementById("AnswersOuterContainer").style.height = `${maxHeight}px`;
+        if(gridContainer)gridContainer.style.maxHeight = `${maxHeight}px`;
       }
+      window.addEventListener('resize', function() {
+        if(timer){
+          resizeButtons();
+          updateGridContainerMaxHeight();
+          adjustFontSize();
+          document.getElementById(`bottomButton${currentQuestionCard}`).click();
+          updateOutline(document.getElementById(`qh${currentQuestionCard}-${lastQuestionViewedPerIndex[currentQuestionCard]}`));
+        }
+      });
       window.onload = loadAllData();
     </script>
   </body>
