@@ -313,7 +313,8 @@
           currentQuestionCard--;
           currentQuestionIndex = data[currentQuestionCard].questions.length - 1;
         } else {
-          return;
+          document.getElementById('confirmation-message').innerText = (currentSectionIndex==0?'You are already on the first question of the first section.':'You cannot return to previous sections.')
+          overlay2.style.display = 'flex';
         }
         let activeButton = document.getElementById(`bottomButton${currentQuestionCard}`);
         activeButton.click();
@@ -328,7 +329,8 @@
           currentQuestionCard++;
           currentQuestionIndex = 0;
         } else {
-          return;
+          if(currentSectionIndex+1==categoriesGlobal.length)endTest()
+          else showOverlay(currentSectionIndex+1)
         }
         let activeButton = document.getElementById(`bottomButton${currentQuestionCard}`);
         activeButton.click();
@@ -368,10 +370,20 @@
             return a1 - b1 || a2 - b2;
           })
           .map((key, index) => {
-            return `${index + 1},${userChoices[key]}`;
+            let userChoice = userChoices[key];
+            let answerData = answersAndTypes[index+1];
+            return [index+1, userChoice, answerData.answer, answerData.type];
           })
+          .flat()
           .join(',');
-        let time = categoriesGlobal[currentSectionIndex].time-currentTime/60
+        let timeInSeconds = categoriesGlobal[currentSectionIndex].time*60-currentTime
+        let h = Math.floor(timeInSeconds / 3600);
+        let m = Math.floor(timeInSeconds % 3600 / 60);
+        let s = Math.floor(timeInSeconds % 3600 % 60);
+        let hDisplay = h > 0 ? (h < 10 ? '0' : '') + h + ':' : '';
+        let mDisplay = m > 0 ? (m < 10 ? '0' : '') + m + ':' : '00:';
+        let sDisplay = s > 0 ? (s < 10 ? '0' : '') + s : '00';
+        let time = "'"+hDisplay+mDisplay+sDisplay;
         const params = {answers: outputString, studentName, category: categoriesGlobal[currentSectionIndex].name, time};
         const data = JSON.stringify(params);
         const url = 'https://script.google.com/macros/s/AKfycbycd-dT6F0ATe9yxLwHWkXJsrA3YU2M_paTgyWSXWdaCSvInIQKbyfT0OMuzqcy7yXa/exec?data='+data;
@@ -381,7 +393,7 @@
           XHR.onreadystatechange = function() {
             if(XHR.readyState == 4) {
               if(XHR.status == 200) {
-                console.log(XHR.responseText);
+                // console.log(XHR.responseText);
               }
             }
           }
@@ -394,6 +406,7 @@
       let data = [];
       let questionsAnsweredState = [];
       let userChoices = {};
+      let answersAndTypes = {};
       function buildTest(name,selectedClass){
         categoriesGlobal = selectedClass.categories
         assignSections(name,categoriesGlobal)
@@ -402,7 +415,18 @@
       function getQuestionCards(category){
         userChoices = {};
         clickedAlready = false;
-        data = category.questionCards
+        data = category.questionCards;
+        answersAndTypes = {};
+        let counter = 1;
+        data.forEach(item => {
+          item.questions.forEach(question => {
+            answersAndTypes[counter] = {
+              answer: question[5],
+              type: question[6]
+            };
+            counter++;
+          });
+        });
         questionsAnsweredState = new Array(data.length).fill(false);
         buildBottomSection(data)
         setTimeout(() => {
@@ -431,7 +455,6 @@
           overlay.style.display = 'flex';
         }
       }
-
       function hideOverlay() {
         document.getElementById('overlay').style.display = 'none';
         document.getElementById('overlay2').style.display = 'none';
@@ -554,10 +577,6 @@
         var marginLeft = parseFloat(styles.marginLeft);
         var marginRight = parseFloat(styles.marginRight);
         var totalWidth = width + marginLeft + marginRight;
-        console.log('getting width of '+elementId)
-        console.log('width:'+width)
-        console.log('marginLeft:'+marginLeft)
-        console.log('marginRight:'+marginRight)
         return totalWidth;
       }
       function buildBottomSection(data){
@@ -706,7 +725,7 @@
         let questions = data[questionCard].questions;
         let question = questions[questionIndex];
         let prompt = question[0];
-        let answers = question.slice(1, -1);
+        let answers = question.slice(1, -2);
         const promptDiv = document.getElementById("QuestionPanePrompt")
         if(!prompt)promptDiv.style.display = 'none';
         else {
