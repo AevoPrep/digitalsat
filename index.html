@@ -45,9 +45,7 @@
         <div class="thisDiv" id="QuestionPane">
           <div id="QuestionPaneHead"></div>
           <div id="QuestionPanePrompt"></div>
-          <div id="AnswersOuterContainer">
-            <div id="QuestionPaneAnswers"></div>
-          </div>
+          <div id="QuestionPaneAnswers"></div>
         </div>
       </div>
       <div id="bottomTab" class="thisDiv bottom-info-section info-section">
@@ -103,7 +101,7 @@
       let lastQuestionViewedPerIndex = {};
       let clickedAlready = false;
       function loadAllData(){
-        const url = 'https://script.google.com/macros/s/AKfycbycd-dT6F0ATe9yxLwHWkXJsrA3YU2M_paTgyWSXWdaCSvInIQKbyfT0OMuzqcy7yXa/exec';
+        const url = 'https://script.google.com/macros/s/AKfycbwVTcKu78sWdDMS3BX7Txgf-Nb0XnB67xRT89ukS1DEEYc2X0M-V4HtowkBalxBFsFZWQ/exec';
         const XHR = new XMLHttpRequest();
 
         XHR.onreadystatechange = function() {
@@ -313,8 +311,7 @@
           currentQuestionCard--;
           currentQuestionIndex = data[currentQuestionCard].questions.length - 1;
         } else {
-          document.getElementById('confirmation-message').innerText = (currentSectionIndex==0?'You are already on the first question of the first section.':'You cannot return to previous sections.')
-          overlay2.style.display = 'flex';
+          return;
         }
         let activeButton = document.getElementById(`bottomButton${currentQuestionCard}`);
         activeButton.click();
@@ -329,8 +326,7 @@
           currentQuestionCard++;
           currentQuestionIndex = 0;
         } else {
-          if(currentSectionIndex+1==categoriesGlobal.length)endTest()
-          else showOverlay(currentSectionIndex+1)
+          return;
         }
         let activeButton = document.getElementById(`bottomButton${currentQuestionCard}`);
         activeButton.click();
@@ -370,30 +366,20 @@
             return a1 - b1 || a2 - b2;
           })
           .map((key, index) => {
-            let userChoice = userChoices[key];
-            let answerData = answersAndTypes[index+1];
-            return [index+1, userChoice, answerData.answer, answerData.type];
+            return `${index + 1},${userChoices[key]}`;
           })
-          .flat()
           .join(',');
-        let timeInSeconds = categoriesGlobal[currentSectionIndex].time*60-currentTime
-        let h = Math.floor(timeInSeconds / 3600);
-        let m = Math.floor(timeInSeconds % 3600 / 60);
-        let s = Math.floor(timeInSeconds % 3600 % 60);
-        let hDisplay = h > 0 ? (h < 10 ? '0' : '') + h + ':' : '';
-        let mDisplay = m > 0 ? (m < 10 ? '0' : '') + m + ':' : '00:';
-        let sDisplay = s > 0 ? (s < 10 ? '0' : '') + s : '00';
-        let time = "'"+hDisplay+mDisplay+sDisplay;
+        let time = categoriesGlobal[currentSectionIndex].time-currentTime/60
         const params = {answers: outputString, studentName, category: categoriesGlobal[currentSectionIndex].name, time};
         const data = JSON.stringify(params);
-        const url = 'https://script.google.com/macros/s/AKfycbycd-dT6F0ATe9yxLwHWkXJsrA3YU2M_paTgyWSXWdaCSvInIQKbyfT0OMuzqcy7yXa/exec?data='+data;
+        const url = 'https://script.google.com/macros/s/AKfycbwVTcKu78sWdDMS3BX7Txgf-Nb0XnB67xRT89ukS1DEEYc2X0M-V4HtowkBalxBFsFZWQ/exec?data='+data;
         test(encodeURI(url))
         function test(url) {
           var XHR = new XMLHttpRequest();
           XHR.onreadystatechange = function() {
             if(XHR.readyState == 4) {
               if(XHR.status == 200) {
-                // console.log(XHR.responseText);
+                console.log(XHR.responseText);
               }
             }
           }
@@ -406,7 +392,6 @@
       let data = [];
       let questionsAnsweredState = [];
       let userChoices = {};
-      let answersAndTypes = {};
       function buildTest(name,selectedClass){
         categoriesGlobal = selectedClass.categories
         assignSections(name,categoriesGlobal)
@@ -415,18 +400,7 @@
       function getQuestionCards(category){
         userChoices = {};
         clickedAlready = false;
-        data = category.questionCards;
-        answersAndTypes = {};
-        let counter = 1;
-        data.forEach(item => {
-          item.questions.forEach(question => {
-            answersAndTypes[counter] = {
-              answer: question[5],
-              type: question[6]
-            };
-            counter++;
-          });
-        });
+        data = category.questionCards
         questionsAnsweredState = new Array(data.length).fill(false);
         buildBottomSection(data)
         setTimeout(() => {
@@ -455,6 +429,7 @@
           overlay.style.display = 'flex';
         }
       }
+
       function hideOverlay() {
         document.getElementById('overlay').style.display = 'none';
         document.getElementById('overlay2').style.display = 'none';
@@ -530,7 +505,7 @@
         }
         for (let i = QuestionPane.children.length - 1; i >= 0; i--) {
           const child = QuestionPane.children[i];
-          if (child.id !== "QuestionPaneHead" && child.id !== "QuestionPanePrompt" && child.id !== "AnswersOuterContainer") {
+          if (child.id !== "QuestionPaneHead" && child.id !== "QuestionPanePrompt" && child.id !== "QuestionPaneAnswers") {
             QuestionPane.removeChild(child);
           }
         }
@@ -569,15 +544,6 @@
           }
         }
         return (answeredQuestions / questions.length) * 100;
-      }
-      function getTotalWidth(elementId) {
-        var element = document.getElementById(elementId);
-        var styles = window.getComputedStyle(element);
-        var width = element.offsetWidth;
-        var marginLeft = parseFloat(styles.marginLeft);
-        var marginRight = parseFloat(styles.marginRight);
-        var totalWidth = width + marginLeft + marginRight;
-        return totalWidth;
       }
       function buildBottomSection(data){
         const questionLinksContainer = document.getElementById('questionLinksContainer');
@@ -656,7 +622,6 @@
             });
           }
         }
-        resizeButtons();
         setTimeout(() => {
           let firstBottomButton = document.getElementById('bottomButton0')
           firstBottomButton.classList.add('question-active');
@@ -672,51 +637,6 @@
           outline.style.top = `${relativeTop-4}px`;
         }, 100)
       }
-      function resizeButtons(){
-        const bottomTabWidth = document.getElementById('bottomTab').offsetWidth;
-        const backButtonWidth = getTotalWidth('backButton');
-        const nextButtonWidth = getTotalWidth('nextButton');
-        const maxButtonsWidth = bottomTabWidth - backButtonWidth - nextButtonWidth - 40;
-        const buttons = document.getElementById('questionLinksContainer').getElementsByTagName('button');
-        const totalButtons = buttons.length;
-        let fullButtonWidth = 9999;
-        const minPaddingHorizontal = 3;
-        const minMarginHorizontal = 2;
-        const maxPaddingHorizontal = 20;
-        const maxMarginHorizontal = 12;
-
-        const paddingDecreaseRatio = (maxPaddingHorizontal - minPaddingHorizontal) / 
-                                    (maxPaddingHorizontal - minPaddingHorizontal + maxMarginHorizontal - minMarginHorizontal);
-        const marginDecreaseRatio = (maxMarginHorizontal - minMarginHorizontal) / 
-                                    (maxPaddingHorizontal - minPaddingHorizontal + maxMarginHorizontal - minMarginHorizontal);
-
-        let paddingHorizontal = maxPaddingHorizontal;
-        let marginHorizontal = maxMarginHorizontal;
-
-        while (fullButtonWidth > maxButtonsWidth && 
-              (paddingHorizontal > minPaddingHorizontal || marginHorizontal > minMarginHorizontal)) {
-          fullButtonWidth = 0;
-          if (paddingHorizontal - paddingDecreaseRatio > minPaddingHorizontal) {
-            paddingHorizontal -= paddingDecreaseRatio;
-          } else {
-            paddingHorizontal = minPaddingHorizontal;
-          }
-          if (marginHorizontal - marginDecreaseRatio > minMarginHorizontal) {
-            marginHorizontal -= marginDecreaseRatio;
-          } else {
-            marginHorizontal = minMarginHorizontal;
-          }
-          for (let i = 0; i < totalButtons; i++) {
-            buttons[i].style.paddingLeft = `${paddingHorizontal/2}px`;
-            buttons[i].style.paddingRight = `${paddingHorizontal/2}px`;
-            buttons[i].style.marginLeft = `${marginHorizontal/2}px`;
-            buttons[i].style.marginRight = `${marginHorizontal/2}px`;
-          }
-          for (let i = 0; i < totalButtons; i++) {
-            fullButtonWidth+=getTotalWidth(buttons[i].id);
-          }
-        }
-      }
       function loadQuestion(questionCard,questionIndex){
         updateOutline(document.getElementById(`qh${questionCard}-${lastQuestionViewedPerIndex[questionCard]}`));
         lastQuestionViewedPerIndex[questionCard]=questionIndex;
@@ -725,17 +645,12 @@
         let questions = data[questionCard].questions;
         let question = questions[questionIndex];
         let prompt = question[0];
-        let answers = question.slice(1, -2);
-        const promptDiv = document.getElementById("QuestionPanePrompt")
-        if(!prompt)promptDiv.style.display = 'none';
-        else {
-          promptDiv.style.display = 'flex';
-          promptDiv.innerText = prompt;
-        }
+        let answers = question.slice(1, -1);
+        document.getElementById("QuestionPanePrompt").innerText = prompt;
         const QuestionPaneAnswers = document.getElementById("QuestionPaneAnswers");
         QuestionPaneAnswers.innerHTML = '';
 
-        const isImageAnswer = answers.some(answer => typeof answer === 'string' && answer.includes('=IMAGE'));
+        const isImageAnswer = answers.some(answer => answer.includes('=IMAGE'));
         if(isImageAnswer){
           const gridContainer = document.createElement("div");
           gridContainer.id = 'gridContainer';
@@ -785,7 +700,7 @@
             answerContainer.classList.add("answer-selected");
           }
 
-          if(typeof answer === 'string' && answer.startsWith("=IMAGE")){
+          if(answer.startsWith("=IMAGE")){
             const answerImage = document.createElement("img");
             answerImage.src = answer.split('IMAGE(')[1].split('"')[1];
             answerImage.classList.add("answerImage");
@@ -804,7 +719,6 @@
             QuestionPaneAnswers.appendChild(answerContainer);
           }
         });
-        document.getElementById("AnswersOuterContainer").style.height = `${window.innerHeight * 0.8 - document.getElementById("QuestionPaneHead").offsetHeight - document.getElementById("QuestionPanePrompt").offsetHeight - 50}px`;
         updateGridContainerMaxHeight();
       }
       function insertQuestions(index,thisButtonRange) {
@@ -975,14 +889,9 @@
             div4.style.width = "100%";
             div4.style.paddingLeft = "10px";
             div4.style.paddingRight = "10px";
-            if(/~/.test(paragraph)){
-              div4.style.fontStyle = "italic";
-              div4.style.color = "rgba(16, 16, 16, .7)";
-              div4.textContent = paragraph.split('~')[1];
-            }
-            else{
-              div4.textContent = paragraph;
-            }
+            if(/~/.test(paragraph))div4.style.fontStyle = "italic";
+            div4.style.color = "rgba(16, 16, 16, .7)";
+            div4.textContent = paragraph.split('~')[1];
           }
           div.style.width = "100%";
           div.classList.add("sourceMaterialParagraphs");
@@ -1039,23 +948,18 @@
       }
       function updateGridContainerMaxHeight() {
         const gridContainer = document.getElementById("gridContainer");
-        const QuestionPaneHead = document.getElementById("QuestionPaneHead");
-        const QuestionPanePrompt = document.getElementById("QuestionPanePrompt");
-        const headHeight = QuestionPaneHead.offsetHeight;
-        const promptHeight = QuestionPanePrompt.offsetHeight;
-        const maxHeight = window.innerHeight * 0.8 - headHeight - promptHeight - 50;
-        document.getElementById("AnswersOuterContainer").style.height = `${maxHeight}px`;
-        if(gridContainer)gridContainer.style.maxHeight = `${maxHeight}px`;
-      }
-      window.addEventListener('resize', function() {
-        if(timer){
-          resizeButtons();
-          updateGridContainerMaxHeight();
-          adjustFontSize();
-          document.getElementById(`bottomButton${currentQuestionCard}`).click();
-          updateOutline(document.getElementById(`qh${currentQuestionCard}-${lastQuestionViewedPerIndex[currentQuestionCard]}`));
+        const QuestionPaneAnswers = document.getElementById("QuestionPaneAnswers");
+        if(gridContainer){
+          const QuestionPaneHead = document.getElementById("QuestionPaneHead");
+          const QuestionPanePrompt = document.getElementById("QuestionPanePrompt");
+          const headHeight = QuestionPaneHead.offsetHeight;
+          const promptHeight = QuestionPanePrompt.offsetHeight;
+
+          const maxHeight = window.innerHeight * 0.8 - headHeight - promptHeight - 50;
+          gridContainer.style.maxHeight = `${maxHeight}px`;
+          QuestionPaneAnswers.style.maxHeight = `${maxHeight}px`;
         }
-      });
+      }
       window.onload = loadAllData();
     </script>
   </body>
